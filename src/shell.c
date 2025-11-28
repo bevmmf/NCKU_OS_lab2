@@ -20,7 +20,38 @@
  * 
  */
 void redirection(struct cmd_node *p){
-
+	// pipe
+	if (p->in != STDIN_FILENO) 
+	{
+		if(dup2(p->in, STDIN_FILENO) == -1)
+			perror("dup2 in");
+	}
+	if (p->out != STDOUT_FILENO) 
+	{
+		if(dup2(p->out, STDOUT_FILENO) == -1)
+			perror("dup2 out");
+	}
+	
+	// <
+	if(p->in_file){
+		int fd_in = open(p->in_file, O_RDONLY);
+		if(fd_in < 0){
+			perror("open in_file");
+		}
+		if(dup2(fd_in, STDIN_FILENO) == -1)
+			perror("dup2 in_file");
+		close(fd_in);
+	}
+	// >
+	if(p->out_file){
+		int fd_out = open(p->out_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		if(fd_out < 0){
+			perror("open out_file");
+		}
+		if(dup2(fd_out, STDOUT_FILENO) == -1)
+			perror("dup2 out_file");
+		close(fd_out);
+	}
 }
 // ===============================================================
 
