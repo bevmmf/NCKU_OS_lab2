@@ -1,0 +1,51 @@
+    # ==========================================
+# Build artifacts
+# ==========================================
+*.o
+*.out
+*.exe
+*.log
+*.tmp
+*.swp
+
+# Final executables (according to your makefile)
+my_shell
+shell
+a.out
+
+# ==========================================
+# Windows ADS metadata (Avoid :Zone.Identifier)
+# ==========================================
+*Zone.Identifier
+*:Zone.Identifier
+
+# ==========================================
+# IDE / Editor junk
+# ==========================================
+.vscode/
+.idea/
+*.code-workspace
+
+# ==========================================
+# Backup & temporary files
+# ==========================================
+*~
+*.bak
+*.orig
+
+# ==========================================
+# IPC / OS lab key files (if any)
+# ==========================================
+mq_keyfile
+tmpkey.*
+
+# ==========================================
+# Build / bin folders (if you have separate directories)
+# ==========================================
+build/
+bin/
+
+# ==========================================
+# macOS junk (Avoid if you later use Mac)
+# ==========================================
+.DS_Store
