@@ -55,7 +55,17 @@ int help(char **args)
 // ======================= requirement 2.1 =======================
 int cd(char **args)
 {
-	return 1;
+		// args[0] = "cd"
+    // args[1] = "directory path"
+	/* guard clause */
+    if (args[1] == NULL) {
+        fprintf(stderr, "cd: missing argument\n");
+        return 1;
+    }
+    if (chdir(args[1]) != 0) {
+        perror("cd");
+    }
+    return 1;  // Return 1 to continue running the shell
 }
 // ===============================================================
 
