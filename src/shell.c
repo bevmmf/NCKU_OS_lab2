@@ -69,21 +69,24 @@ void redirection(struct cmd_node *p){
 int spawn_proc(struct cmd_node *p)
 {
 	pid_t pid = fork();
-	switch (pid) {
-		case -1:
-			perror("fork");
-			return -1;
-		case 0:
-			redirection(p);
-			if (execvp(p->args[0], p->args) == -1) {
-				perror("execvp");
-			}
-		default:
-			int status;
-			waitpid(pid, NULL, 0);
+	if (pid < 0){
+		perror("fork");
+		return -1;
 	}
+	else if(pid == 0){
+		redirection(p);
+		if (execvp(p->args[0], p->args) == -1) {
+			perror("execvp");
+			_exit(1);  // Exit child process on failure
+		}
+	}
+	else{
+		waitpid(pid, NULL, 0);
+	}
+
   	return 1;
 }
+
 // ===============================================================
 
 
@@ -98,8 +101,86 @@ int spawn_proc(struct cmd_node *p)
  */
 int fork_cmd_node(struct cmd *cmd)
 {
-	return 1;
+    struct cmd_node *node = cmd->head;
+    int prev_read = STDIN_FILENO;   // previous read end
+    int pipefd[2];
+    int status = 0;
+    int child_cnt = 0;              // actual number of forked children
+
+    for (; node != NULL; node = node->next) {
+
+        // 1. decide this node's in / out
+        if (node->next != NULL) {
+            // not the last one → connect to the next command, so create a new pipe
+            if (pipe(pipefd) == -1) {
+                perror("pipe");
+                return -1;
+            }
+            node->in  = prev_read;   // read from previous (first is STDIN)
+            node->out = pipefd[1];   // write to this pipe's write end
+        } else {
+            // last one → read from previous, output to stdout
+            node->in  = prev_read;
+            node->out = STDOUT_FILENO;
+        }
+
+        // 2. fork child
+        pid_t pid = fork();
+        if (pid < 0) {
+            perror("fork");
+            return -1;
+        }
+
+        if (pid == 0) {
+            // ===== child =====
+            redirection(node);  
+
+            int idx = searchBuiltInCommand(node);
+            if (idx != -1) {
+                execBuiltInCommand(idx, node);
+                _exit(0);
+            } else {
+                if(execvp(node->args[0], node->args) == -1) {
+                	perror("execvp");
+					_exit(1);
+                }
+				_exit(0);
+            }
+        }
+
+        // ===== parent =====
+        child_cnt++;
+
+        // close write end of current command
+        if (node->out != STDOUT_FILENO) {
+            close(node->out);
+        }
+
+        // close read end of previous command
+        if (prev_read != STDIN_FILENO) {
+            close(prev_read);
+        }
+
+        // update prev_read: leave it for the next command
+        if (node->next != NULL) {
+            prev_read = pipefd[0];  // next node is reading from here
+        }
+    }
+
+    // 3. wait all children
+    for (int i = 0; i < child_cnt; ++i) {
+        if (wait(&status) == -1) {
+            perror("wait");
+            return -1;
+        }
+    }
+
+    if (WIFEXITED(status))
+        return 1;
+    return -1;
 }
+
+
 // ===============================================================
 
 
@@ -139,7 +220,6 @@ void shell()
 		}
 		// There are multiple commands ( | )
 		else{
-			
 			status = fork_cmd_node(cmd);
 		}
 		// free space
