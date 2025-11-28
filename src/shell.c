@@ -68,6 +68,20 @@ void redirection(struct cmd_node *p){
  */
 int spawn_proc(struct cmd_node *p)
 {
+	pid_t pid = fork();
+	switch (pid) {
+		case -1:
+			perror("fork");
+			return -1;
+		case 0:
+			redirection(p);
+			if (execvp(p->args[0], p->args) == -1) {
+				perror("execvp");
+			}
+		default:
+			int status;
+			waitpid(pid, NULL, 0);
+	}
   	return 1;
 }
 // ===============================================================
